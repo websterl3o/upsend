@@ -1,15 +1,16 @@
 # UpSend
 
-## Descrição do Projeto
-Projeto UpSend é uma aplicação cujo objetivo é realizar o upload de uma lista de cobrança (em csv) e enviar um e-mail para cada cliente da lista.
-- Origem do Projeto: O projeto foi desenvolvido como parte de um desafio do processo seletivo da empresa Kanastra para testar minhas habilidades técnicas.
-- Regras
-  - Criar um endpoint da API processar o arquivo;
-  - Baseado input recebido, o sistema precisa gerar regularmente os boletos para cobrança e disparar mensagens para os e-mails da lista;
-  - Necessário configurar um arquivo docker-compose para rodar o projeto dentro de contêineres.
-- Outros Detalhes
-  - O input do desafio é um CSV de 102160.9KB.
-  - O arquivo CSV contém 1.048.576 registros.
+Aplicação para upload de listas de cobrança em CSV e disparo de e-mails para cada cliente, projetada para processar arquivos grandes de forma assíncrona.
+
+**Contexto:** desenvolvido como desafio técnico de processo seletivo, com um arquivo de entrada de cerca de 100 MB e 1.048.576 registros.
+
+## Como funciona
+
+1. O upload do CSV é validado e salvo, e a API responde na hora, sem esperar o processamento.
+2. O job `ProcessCollectionList` lê o arquivo linha a linha e o divide em lotes de 500 registros.
+3. Cada lote vira um job `RegisterAndSendBilling`, que registra as cobranças e envia os e-mails.
+4. O processamento é idempotente: cobranças já registradas não são duplicadas e clientes já notificados não recebem e-mail de novo.
+5. Os jobs têm até 5 tentativas em caso de falha.
 
 ## Tecnologias e Ferramentas Utilizadas
 
@@ -26,9 +27,9 @@ Projeto UpSend é uma aplicação cujo objetivo é realizar o upload de uma list
 ## Configuração do Ambiente
 1. Clone o repositório do projeto
     ```shellScript
-    git clone git@github.com:websterl3o/kanastra-upsend.git
+    git clone git@github.com:websterl3o/upsend.git
     ```
-2. Crie o arquivo .env apartir do .env.example
+2. Crie o arquivo .env a partir do .env.example
     ```shellScript
     cp .env.example .env
     ```
@@ -48,7 +49,7 @@ Projeto UpSend é uma aplicação cujo objetivo é realizar o upload de uma list
     ```shellScript
     docker-compose exec app php artisan migrate
     ```
-7. Instalar dependencias do node
+7. Instale as dependências do Node
     ```shellScript
     docker-compose exec app npm install
     ```
