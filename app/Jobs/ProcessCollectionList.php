@@ -14,6 +14,8 @@ class ProcessCollectionList implements ShouldQueue
 
     public $tries = 5;
     protected CollectionList $collectionList;
+    private const CHUNK_SIZE = 500;
+    private const MIN_COLUMNS = 6;
 
     /**
      * Create a new job instance.
@@ -35,32 +37,23 @@ class ProcessCollectionList implements ShouldQueue
     {
         Log::info("Start - Processing collection list {$this->collectionList->id}");
 
-        $chunkSize = 500;
-        $chunk = [];
-        $packages = [];
-
         $file = $this->openFile();
+        $chunk = [];
 
-        while (($data = $file->fgetcsv()) !== false) {
-            if (count($data) < 6) {
+        while (($row = $file->fgetcsv()) !== false) {
+            if (count($row) < self::MIN_COLUMNS) {
                 continue;
             }
 
-            $chunk[] = $data;
+            $chunk[] = $row;
 
-            if (count($chunk) === $chunkSize) {
-                $packages[] = $chunk;
+            if (count($chunk) === self::CHUNK_SIZE) {
+                $this->processRegisterAndSendBilling($chunk);
                 $chunk = [];
             }
         }
 
-        if (!empty($chunk)) {
-            $packages[] = $chunk;
-        }
-
-        array_walk($packages, function ($package) {
-            $this->processRegisterAndSendBilling($package);
-        });
+        $this->processRegisterAndSendBilling($chunk);
 
         $this->collectionList->update(['processed_at' => now()]);
 
